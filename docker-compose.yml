@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: peblob-tv-db
+    environment:
+      POSTGRES_DB: peblo_tv
+      POSTGRES_USER: peblo
+      POSTGRES_PASSWORD: peblo_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U peblo -d peblo_tv"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    container_name: peblo-tv-api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://peblo:peblo_password@db:5432/peblo_tv
+      JWT_SECRET_KEY: peblo-tv-mini-docker-secret
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 60
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin123
+      EDITOR_USERNAME: editor
+      EDITOR_PASSWORD: editor123
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  cms:
+    build:
+      context: ./cms
+    container_name: peblo-tv-cms
+    ports:
+      - "5173:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  viewer:
+    build:
+      context: ./viewer
+    container_name: peblo-tv-viewer
+    ports:
+      - "5174:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
