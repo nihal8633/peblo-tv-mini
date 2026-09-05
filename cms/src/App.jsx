@@ -130,13 +130,13 @@ async function apiRequest(path, options = {}) {
     },
   );
 
-  let payload = null;
+  let payload;
 
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
+try {
+  payload = await response.json();
+} catch {
+  // Response body is not JSON.
+}
 
   if (!response.ok) {
     if (response.status === 401) {
