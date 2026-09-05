@@ -53,6 +53,10 @@ jobs:
         working-directory: backend
         run: python -m compileall -q app tests
 
+      - name: Create test database schema
+        working-directory: backend
+        run: python -c "import app.models; from app.database import Base, engine; Base.metadata.create_all(bind=engine)"
+
       - name: Run database migrations
         working-directory: backend
         run: alembic upgrade head
